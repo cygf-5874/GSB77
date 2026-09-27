@@ -29,9 +29,24 @@ RAND_B_MAX = (1 << RAND_B_BITS) - 1
 
 def pack(timestamp_ms, rand_a, rand_b):
     """把三个字段按 RFC 9562 §5.7 拼成一个 128 位无符号整数。"""
-    raise NotImplementedError("not implemented")
+    return (
+        (timestamp_ms << 80)
+        | (VERSION << 76)
+        | (rand_a << 64)
+        | (VARIANT << 62)
+        | rand_b
+    )
 
 
 def unpack(value):
     """把 128 位无符号整数拆成 `(timestamp_ms, version, variant, rand_a, rand_b)`。"""
-    raise NotImplementedError("not implemented")
+    if not isinstance(value, int):
+        raise TypeError("value 必须是 int，得到 %s" % type(value).__name__)
+    if not 0 <= value < (1 << 128):
+        raise ValueError("value 必须在 [0, 2**128) 内，得到 %r" % (value,))
+    timestamp_ms = (value >> 80) & TS_MAX
+    version = (value >> 76) & 0xF
+    rand_a = (value >> 64) & RAND_A_MAX
+    variant = (value >> 62) & 0b11
+    rand_b = value & RAND_B_MAX
+    return (timestamp_ms, version, variant, rand_a, rand_b)
